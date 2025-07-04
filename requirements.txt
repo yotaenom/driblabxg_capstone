@@ -1,0 +1,5 @@
+pandas
+numpy
+joblib
+argparse
+# tensorflow  # Uncomment if you plan to use Keras models 
