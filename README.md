@@ -53,7 +53,7 @@ driblabxg_capstone/
 
 ```bash
 # Clone the repository
-git clone https://github.com/YOUR_USERNAME/driblabxg_capstone.git
+git clone https://github.com/yotaenom/driblabxg_capstone.git
 cd driblabxg_capstone
 ```
 
