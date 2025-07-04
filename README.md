@@ -11,6 +11,7 @@ Unlike traditional xG models that only consider shot location or body part, this
 - Align event (shot) and tracking data using timestamps and mappings
 - Build a modular pipeline that runs end-to-end from raw data to predictions
 - Deliver a structured, professional, and reproducible repository
+- Implement MLOps best practices for model management and deployment
 
 ---
 
@@ -22,6 +23,17 @@ Unlike traditional xG models that only consider shot location or body part, this
 - joblib — saving/loading model
 - argparse — command-line interface
 - json — parsing `.json` files
+- PyYAML — configuration management
+
+---
+
+## MLOps Features
+
+- **Configuration Management**: Centralized config file for all pipeline parameters
+- **Logging System**: Comprehensive logging for pipeline execution and debugging
+- **Model Registry**: Version control and metadata tracking for models
+- **CI/CD Pipeline**: Automated testing across multiple platforms
+- **Cross-Platform Compatibility**: Tested on macOS, Windows, and Linux
 
 ---
 
@@ -34,12 +46,18 @@ driblabxg_capstone/
 │       ├── jsonls/     # Tracking data (JSON format)
 │       └── mappings/   # Mapping files (JSON format)
 ├── models/             # Trained model files (.pkl, .joblib, etc.)
+│   └── registry/       # Model registry metadata
 ├── output/             # Prediction results (CSV)
 ├── src/                # Core pipeline modules
 │   ├── data_loader.py
 │   ├── data_preprocessing.py
 │   ├── data_validation.py
-│   └── inference.py
+│   ├── inference.py
+│   ├── logger.py       # Centralized logging
+│   └── model_registry.py # Model versioning
+├── .github/workflows/  # CI/CD pipeline
+│   └── test.yml
+├── config.yaml         # Pipeline configuration
 ├── predict_xg.py       # Main script to run the pipeline
 ├── requirements.txt    # List of required Python libraries
 └── README.md           # This guide
@@ -90,11 +108,19 @@ pip install --upgrade pip
 pip install -r requirements.txt
 ```
 
-### 4. Prepare Your Data
+### 4. Configure the Pipeline
+
+Edit `config.yaml` to customize:
+- Data paths
+- Model settings
+- Output preferences
+- Validation requirements
+
+### 5. Prepare Your Data
 - Place your shot, tracking, and mapping JSON files in the appropriate folders under `data/shot_pack/` as shown above.
 - Place your trained model file (e.g., `.pkl` or `.joblib`) in the `models/` directory.
 
-### 5. Run the Prediction Pipeline
+### 6. Run the Prediction Pipeline
 
 ```bash
 python predict_xg.py \
@@ -103,6 +129,36 @@ python predict_xg.py \
   --mapping_path data/shot_pack/mappings \
   --model_path models/your_model.pkl \
   --output_path output
+```
+
+---
+
+## Model Management
+
+### Register a New Model
+
+```python
+from src.model_registry import save_model_with_metadata
+
+# Save and register model
+model_id = save_model_with_metadata(
+    model=your_trained_model,
+    filepath="models/xg_model_v1.pkl",
+    model_name="xg_predictor",
+    version="1.0",
+    metrics={"accuracy": 0.85, "auc": 0.92},
+    description="First version of xG prediction model"
+)
+```
+
+### List Registered Models
+
+```python
+from src.model_registry import ModelRegistry
+
+registry = ModelRegistry()
+models = registry.list_models()
+print(models)
 ```
 
 ---
@@ -126,5 +182,6 @@ Alejandro Osto
 | `jsonls/*.json` not found      | Place tracking files in `data/shot_pack/jsonls/`      |
 | `predict_xg.py` fails          | Check that all required arguments are provided         |
 | Output file not generated      | Check for errors in the console and data formatting    |
+| Configuration errors           | Verify `config.yaml` file format and paths            |
 
 ---

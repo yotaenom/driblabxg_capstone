@@ -1,0 +1,36 @@
+# Pipeline Configuration
+pipeline:
+  name: "driblab-xg-prediction"
+  version: "1.0.0"
+
+# Data Configuration
+data:
+  base_path: "data/shot_pack"
+  shots_dir: "shots"
+  tracking_dir: "jsonls"
+  mappings_dir: "mappings"
+  
+# Model Configuration
+model:
+  path: "models"
+  supported_formats: [".pkl", ".joblib", ".pickle"]
+  prediction_column: "predicted_xg"
+  
+# Output Configuration
+output:
+  dir: "output"
+  filename_prefix: "xg_predictions"
+  
+# Validation Configuration
+validation:
+  required_shot_columns: []
+  required_tracking_columns: []
+  required_mapping_files: [
+    "player_event_id_to_tracking_id.json",
+    "team_event_id_to_tracking_id.json"
+  ]
+  
+# Logging Configuration
+logging:
+  level: "INFO"
+  format: "%(asctime)s - %(name)s - %(levelname)s - %(message)s" 
