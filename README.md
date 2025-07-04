@@ -47,27 +47,54 @@ driblabxg_capstone/
 
 ---
 
-## How to Run the Project
+## Platform Compatibility
 
-### 1. Setup Environment
+This project is compatible with **macOS**, **Windows**, and **Linux** (Ubuntu 24.04 recommended). The instructions below provide OS-specific commands where necessary. All code and dependencies are cross-platform and have been tested in clean environments on each operating system.
+
+---
+
+## How to Run the Project in a Clean Environment
+
+### 1. Clone the Repository
 
 ```bash
-# Clone the repository
+# macOS/Linux/Windows (Git Bash or WSL)
 git clone https://github.com/yotaenom/driblabxg_capstone.git
 cd driblabxg_capstone
 ```
 
-### 2. Install dependencies
+### 2. Create and Activate a Virtual Environment
+
+#### macOS/Linux
+```bash
+python3 -m venv driblabxg-venv
+source driblabxg-venv/bin/activate
+```
+
+#### Windows (Command Prompt)
+```cmd
+python -m venv driblabxg-venv
+driblabxg-venv\Scripts\activate
+```
+
+#### Windows (PowerShell)
+```powershell
+python -m venv driblabxg-venv
+.\driblabxg-venv\Scripts\Activate.ps1
+```
+
+### 3. Install Dependencies
 
 ```bash
+pip install --upgrade pip
 pip install -r requirements.txt
 ```
 
-### 3. Prepare your data
+### 4. Prepare Your Data
 - Place your shot, tracking, and mapping JSON files in the appropriate folders under `data/shot_pack/` as shown above.
 - Place your trained model file (e.g., `.pkl` or `.joblib`) in the `models/` directory.
 
-### 4. Run the prediction pipeline
+### 5. Run the Prediction Pipeline
 
 ```bash
 python predict_xg.py \
