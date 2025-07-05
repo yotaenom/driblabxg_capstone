@@ -73,33 +73,143 @@ def preprocess_mappings(mappings: Dict[str, Any]) -> Dict[str, pd.DataFrame]:
 
 def preprocess_shots_data(shots_data: List[Dict[str, Any]]) -> pd.DataFrame:
     """
-    Preprocesses shots data.
+    Preprocesses shots data using proper one-hot encoding.
     
     Args:
         shots_data: List of dictionaries containing shots data
         
     Returns:
-        Preprocessed shots data as DataFrame
+        Preprocessed shots data as DataFrame with final selected features
     """
+    import pandas as pd
+    from sklearn.preprocessing import MultiLabelBinarizer
+    
     if not shots_data:
         raise ValueError("Shots data is empty")
     
-    # Convert to DataFrame
-    df = pd.DataFrame(shots_data)
+    # Flatten JSON data (same as pd.json_normalize in notebook)
+    df = pd.json_normalize(shots_data, sep='_')
     
-    # TODO: Add shots-specific preprocessing logic
-    # Examples:
-    # - Handle missing values
-    # - Convert data types
-    # - Filter invalid shots
-    # - Create target variable (if needed)
-    # - Feature engineering
+    # Validate required columns exist
+    required_source_columns = [
+        'id', 'matchId', 'matchTimestamp', 'videoTimestamp', 
+        'location_x', 'location_y', 'team_id', 'player_id',
+        'shot_bodyPart', 'assist_info_type_secondary', 'possession_types'
+    ]
     
-    # Placeholder: Basic missing value handling
-    # df = df.dropna(subset=['x', 'y'])  # Remove rows with missing coordinates
+    missing_cols = [col for col in required_source_columns if col not in df.columns]
+    if missing_cols:
+        raise ValueError(f"Missing required columns: {missing_cols}")
     
-    print(f"✓ Shots data preprocessed: {len(df)} records")
-    return df
+    
+    df_bodypart = pd.get_dummies(df['shot_bodyPart'], prefix='shot_bodyPart')
+    df = pd.concat([df, df_bodypart], axis=1)
+    
+    # Create shot_bodyPart_head_or_other from the one-hot encoded columns
+    head_cols = [col for col in df_bodypart.columns if 'head' in col.lower() or 'other' in col.lower()]
+    if head_cols:
+        df['shot_bodyPart_head_or_other'] = df[head_cols].max(axis=1).astype(int)
+    else:
+        # Fallback if no head/other columns found
+        df['shot_bodyPart_head_or_other'] = 0
+    
+    # One-hot encode assist_info_type_secondary using MultiLabelBinarizer
+    # Handle NaN values in list columns
+    df['assist_info_type_secondary'] = df['assist_info_type_secondary'].fillna('').apply(
+        lambda x: x if isinstance(x, list) else []
+    )
+    
+    mlb_assist = MultiLabelBinarizer()
+    assist_encoded = mlb_assist.fit_transform(df['assist_info_type_secondary'])
+    assist_df = pd.DataFrame(assist_encoded, 
+                            columns=[f"assist_type_{col}" for col in mlb_assist.classes_],
+                            index=df.index)
+    df = pd.concat([df, assist_df], axis=1)
+    
+    # Find and extract assist type columns (search for patterns)
+    assist_cols = assist_df.columns.tolist()
+    
+    # Look for long_pass column
+    long_pass_cols = [col for col in assist_cols if 'long_pass' in col.lower()]
+    df['assist_type_long_pass'] = (
+        assist_df[long_pass_cols[0]].astype(int) if long_pass_cols 
+        else pd.Series(0, index=df.index, dtype=int)
+    )
+    
+    # Look for through_pass column  
+    through_pass_cols = [col for col in assist_cols if 'through_pass' in col.lower()]
+    df['assist_type_through_pass'] = (
+        assist_df[through_pass_cols[0]].astype(int) if through_pass_cols
+        else pd.Series(0, index=df.index, dtype=int)
+    )
+    
+    # One-hot encode possession_types using MultiLabelBinarizer  
+    # Handle NaN values in list columns
+    df['possession_types'] = df['possession_types'].fillna('').apply(
+        lambda x: x if isinstance(x, list) else []
+    )
+    
+    mlb_possession = MultiLabelBinarizer()
+    possession_encoded = mlb_possession.fit_transform(df['possession_types'])
+    possession_df = pd.DataFrame(possession_encoded,
+                                columns=mlb_possession.classes_,
+                                index=df.index)
+    df = pd.concat([df, possession_df], axis=1)
+    
+    # Look for direct_free_kick column
+    possession_cols = possession_df.columns.tolist()
+    free_kick_cols = [col for col in possession_cols if 'direct_free_kick' in col.lower()]
+    df['direct_free_kick'] = (
+        possession_df[free_kick_cols[0]].astype(int) if free_kick_cols
+        else pd.Series(0, index=df.index, dtype=int)
+    )
+
+    
+    # 4. Select final features
+    final_columns = [
+        'id', 'matchId', 'matchTimestamp', 'videoTimestamp',
+        'location_x', 'location_y', 'team_id', 'player_id',
+        'shot_bodyPart_head_or_other', 'assist_type_long_pass', 
+        'direct_free_kick', 'assist_type_through_pass'
+    ]
+    
+    # Create final dataframe with selected columns
+    final_df = df[final_columns].copy()
+    
+    # Data type conversions and cleaning
+    
+    # Ensure numeric columns are proper type
+    numeric_cols = ['location_x', 'location_y']
+    for col in numeric_cols:
+        final_df[col] = pd.to_numeric(final_df[col], errors='coerce')
+    
+    # Ensure ID columns are strings
+    id_cols = ['id', 'matchId', 'team_id', 'player_id']
+    for col in id_cols:
+        final_df[col] = final_df[col].astype(str)
+    
+    # Ensure binary features are int
+    binary_cols = ['shot_bodyPart_head_or_other', 'assist_type_long_pass', 
+                   'direct_free_kick', 'assist_type_through_pass']
+    for col in binary_cols:
+        final_df[col] = final_df[col].astype(int)
+    
+    # 6. Handle missing values
+    
+    # Drop rows with missing coordinates (critical for analysis)
+    initial_rows = len(final_df)
+    final_df = final_df.dropna(subset=['location_x', 'location_y'])
+    dropped_rows = initial_rows - len(final_df)
+    
+    
+    # Fill missing timestamps with empty string if needed
+    timestamp_cols = ['matchTimestamp', 'videoTimestamp']
+    for col in timestamp_cols:
+        final_df[col] = final_df[col].fillna('')
+    
+    
+    
+    return final_df
 
 
 def merge_data(tracking_df: pd.DataFrame, 

@@ -84,16 +84,66 @@ def validate_shots_schema(shots_data: List[Dict[str, Any]]) -> bool:
         if isinstance(record, dict):
             all_keys.update(record.keys())
     
-    # TODO: Define expected columns for shots data
-    # Replace this with actual expected columns
-    expected_columns: Set[str] = set()  # e.g., {'x', 'y', 'shot_type', 'outcome', 'player_id'}
+    # Expected base columns for final feature extraction
+    # Note: Raw JSON data will have many more columns - this is expected
+    expected_columns: Set[str] = {
+        # Basic identifiers and metadata
+        'id',
+        'matchId',
+        'matchTimestamp',
+        'videoTimestamp',
+        
+        # Location data (required for shot analysis)
+        'location_x',
+        'location_y',
+        
+        # Team and player identifiers
+        'team_id',
+        'player_id',
+        
+        # Source columns for feature engineering
+        'shot_bodyPart',           # -> shot_bodyPart_head_or_other
+        'assist_info_type_secondary',  # -> assist_type_long_pass, assist_type_through_pass
+        'possession_types'         # -> direct_free_kick
+    }
     
-    # Check if all expected columns are present
+    # Check if all expected columns are present (extra columns are fine)
     missing_columns = expected_columns - all_keys
     if missing_columns:
         raise AssertionError(f"Shots data missing required columns: {missing_columns}")
     
-    print("✓ Shots data schema validation passed")
+    # Report on what we found
+    extra_columns = all_keys - expected_columns
+    
+    # Validate data types for critical columns
+    sample_record = shots_data[0]
+    
+    # Check numeric fields
+    numeric_fields = ['location_x', 'location_y']
+    for field in numeric_fields:
+        if field in sample_record and sample_record[field] is not None:
+            if not isinstance(sample_record[field], (int, float)):
+                raise AssertionError(f"Field '{field}' should be numeric, got {type(sample_record[field])}")
+    
+    # Check string/ID fields
+    id_fields = ['id', 'matchId', 'team_id', 'player_id']
+    for field in id_fields:
+        if field in sample_record and sample_record[field] is not None:
+            if not isinstance(sample_record[field], (str, int)):
+                raise AssertionError(f"Field '{field}' should be string or int, got {type(sample_record[field])}")
+    
+    # Check string fields
+    if 'shot_bodyPart' in sample_record and sample_record['shot_bodyPart'] is not None:
+        if not isinstance(sample_record['shot_bodyPart'], str):
+            raise AssertionError(f"Field 'shot_bodyPart' should be string, got {type(sample_record['shot_bodyPart'])}")
+    
+    # Check list fields
+    list_fields = ['assist_info_type_secondary', 'possession_types']
+    for field in list_fields:
+        if field in sample_record and sample_record[field] is not None:
+            if not isinstance(sample_record[field], list):
+                raise AssertionError(f"Field '{field}' should be list, got {type(sample_record[field])}")
+    
     return True
 
 
