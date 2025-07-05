@@ -1,5 +1,9 @@
 from typing import List, Dict, Any, Set
 import pandas as pd
+try:
+    from typing import Union
+except ImportError:
+    from typing_extensions import Union
 
 
 def validate_tracking_schema(tracking_data: List[Dict[str, Any]]) -> bool:
@@ -65,47 +69,132 @@ def validate_mappings_schema(mappings: Dict[str, Any]) -> bool:
     return True
 
 
-def validate_shots_schema(shots_data: List[Dict[str, Any]]) -> bool:
+def validate_shots_schema(shots_data: Union[List[Dict[str, Any]], pd.DataFrame]) -> bool:
     """
     Validates the schema for shots data.
     
     Args:
-        shots_data: List of dictionaries containing shots data
+        shots_data: List of dictionaries containing shots data OR pandas DataFrame
         
     Returns:
         True if validation passes, raises AssertionError otherwise
     """
-    if not shots_data:
+    if shots_data is None or (hasattr(shots_data, '__len__') and len(shots_data) == 0):
         raise AssertionError("Shots data is empty")
     
-    # Get all unique keys from the shots data
-    all_keys = set()
-    for record in shots_data:
-        if isinstance(record, dict):
-            all_keys.update(record.keys())
+    # Handle both DataFrame and list of dicts
+    if isinstance(shots_data, pd.DataFrame):
+        # For DataFrames, check for flattened column names
+        all_keys = set(shots_data.columns)
+        sample_record = shots_data.iloc[0].to_dict() if len(shots_data) > 0 else {}
+        is_dataframe = True
+        is_flattened = True
+    else:
+        # For list of dicts, check if it's raw JSON (nested) or already flattened
+        all_keys = set()
+        for record in shots_data:
+            if isinstance(record, dict):
+                all_keys.update(record.keys())
+        sample_record = shots_data[0] if shots_data else {}
+        is_dataframe = False
+        
+        # Detect if data is already flattened (has underscore-separated names)
+        flattened_indicators = ['location_x', 'team_id', 'player_id', 'shot_bodyPart']
+        is_flattened = any(key in all_keys for key in flattened_indicators)
     
-    # Expected base columns for final feature extraction
-    # Note: Raw JSON data will have many more columns - this is expected
-    expected_columns: Set[str] = {
-        # Basic identifiers and metadata
-        'id',
-        'matchId',
-        'matchTimestamp',
-        'videoTimestamp',
+    if is_flattened:
+        # Check for flattened column names (after pd.json_normalize)
+        expected_columns: Set[str] = {
+            # Basic identifiers and metadata
+            'id', 'matchId', 'matchTimestamp', 'videoTimestamp',
+            
+            # Flattened location data
+            'location_x', 'location_y',
+            
+            # Flattened team and player identifiers  
+            'team_id', 'player_id',
+            
+            # Flattened source columns for feature engineering
+            'shot_bodyPart',                    # -> shot_bodyPart_head_or_other
+            'assist_info_type_secondary',       # -> assist_type_long_pass, assist_type_through_pass
+            'possession_types'                  # -> direct_free_kick
+        }
         
-        # Location data (required for shot analysis)
-        'location_x',
-        'location_y',
+        # Validate data types for flattened data
+        def validate_flattened_types():
+            # Check numeric fields
+            numeric_fields = ['location_x', 'location_y']
+            for field in numeric_fields:
+                if field in sample_record and pd.notna(sample_record[field]):
+                    value = sample_record[field]
+                    if not (isinstance(value, (int, float)) or pd.api.types.is_numeric_dtype(type(value))):
+                        raise AssertionError(f"Field '{field}' should be numeric, got {type(value)}")
+            
+            # Check string/ID fields
+            id_fields = ['id', 'matchId', 'team_id', 'player_id']
+            for field in id_fields:
+                if field in sample_record and pd.notna(sample_record[field]):
+                    value = sample_record[field]
+                    if not (isinstance(value, (str, int)) or pd.api.types.is_string_dtype(type(value)) or pd.api.types.is_integer_dtype(type(value))):
+                        raise AssertionError(f"Field '{field}' should be string or int, got {type(value)}")
+            
+            # Check shot_bodyPart 
+            if 'shot_bodyPart' in sample_record and pd.notna(sample_record['shot_bodyPart']):
+                value = sample_record['shot_bodyPart']
+                if not (isinstance(value, str) or pd.api.types.is_string_dtype(type(value))):
+                    raise AssertionError(f"Field 'shot_bodyPart' should be string, got {type(value)}")
+            
+            # Check list fields
+            list_fields = ['assist_info_type_secondary', 'possession_types']
+            for field in list_fields:
+                if field in sample_record and pd.notna(sample_record[field]):
+                    value = sample_record[field]
+                    if not isinstance(value, list):
+                        raise AssertionError(f"Field '{field}' should be list, got {type(value)}")
         
-        # Team and player identifiers
-        'team_id',
-        'player_id',
+        validate_flattened_types()
         
-        # Source columns for feature engineering
-        'shot_bodyPart',           # -> shot_bodyPart_head_or_other
-        'assist_info_type_secondary',  # -> assist_type_long_pass, assist_type_through_pass
-        'possession_types'         # -> direct_free_kick
-    }
+    else:
+        # Check for raw nested JSON structure (before pd.json_normalize)
+        expected_columns: Set[str] = {
+            # Basic identifiers and metadata (top-level)
+            'id', 'matchId', 'matchTimestamp', 'videoTimestamp',
+            
+            # Nested objects that will be flattened
+            'location',        # contains x, y
+            'team',           # contains id
+            'player',         # contains id  
+            'shot',           # contains bodyPart
+            'assist_info',    # contains type_secondary
+            'possession'      # contains types
+        }
+        
+        # Validate nested structure
+        def validate_nested_structure():
+            if 'location' in sample_record:
+                location = sample_record['location']
+                if isinstance(location, dict):
+                    if 'x' not in location or 'y' not in location:
+                        raise AssertionError("location object missing 'x' or 'y' fields")
+                    if not isinstance(location.get('x'), (int, float)) or not isinstance(location.get('y'), (int, float)):
+                        raise AssertionError("location.x and location.y should be numeric")
+            
+            if 'team' in sample_record:
+                team = sample_record['team']
+                if isinstance(team, dict) and 'id' not in team:
+                    raise AssertionError("team object missing 'id' field")
+            
+            if 'player' in sample_record:
+                player = sample_record['player']
+                if isinstance(player, dict) and 'id' not in player:
+                    raise AssertionError("player object missing 'id' field")
+            
+            if 'shot' in sample_record:
+                shot = sample_record['shot']
+                if isinstance(shot, dict) and 'bodyPart' not in shot:
+                    raise AssertionError("shot object missing 'bodyPart' field")
+        
+        validate_nested_structure()
     
     # Check if all expected columns are present (extra columns are fine)
     missing_columns = expected_columns - all_keys
@@ -115,34 +204,6 @@ def validate_shots_schema(shots_data: List[Dict[str, Any]]) -> bool:
     # Report on what we found
     extra_columns = all_keys - expected_columns
     
-    # Validate data types for critical columns
-    sample_record = shots_data[0]
-    
-    # Check numeric fields
-    numeric_fields = ['location_x', 'location_y']
-    for field in numeric_fields:
-        if field in sample_record and sample_record[field] is not None:
-            if not isinstance(sample_record[field], (int, float)):
-                raise AssertionError(f"Field '{field}' should be numeric, got {type(sample_record[field])}")
-    
-    # Check string/ID fields
-    id_fields = ['id', 'matchId', 'team_id', 'player_id']
-    for field in id_fields:
-        if field in sample_record and sample_record[field] is not None:
-            if not isinstance(sample_record[field], (str, int)):
-                raise AssertionError(f"Field '{field}' should be string or int, got {type(sample_record[field])}")
-    
-    # Check string fields
-    if 'shot_bodyPart' in sample_record and sample_record['shot_bodyPart'] is not None:
-        if not isinstance(sample_record['shot_bodyPart'], str):
-            raise AssertionError(f"Field 'shot_bodyPart' should be string, got {type(sample_record['shot_bodyPart'])}")
-    
-    # Check list fields
-    list_fields = ['assist_info_type_secondary', 'possession_types']
-    for field in list_fields:
-        if field in sample_record and sample_record[field] is not None:
-            if not isinstance(sample_record[field], list):
-                raise AssertionError(f"Field '{field}' should be list, got {type(sample_record[field])}")
     
     return True
 
