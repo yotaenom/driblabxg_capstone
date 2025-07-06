@@ -33,6 +33,7 @@ Unlike traditional xG models that only consider shot location or body part, this
 ## MLOps Features
 
 - Configuration management: Centralized `config.yaml` for all pipeline parameters
+- CI/CD pipeline: Automated testing across multiple platforms
 - Model registry: Version control and metadata tracking for models
 
 ---
@@ -90,23 +91,6 @@ Edit `config.yaml` to customize:
 ### 5. Prepare Your Data
 - Place your shot, tracking, and mapping JSON files in the appropriate folders under `data/shot_pack/` as shown below.
 
----
-
-## Quickstart: Minimal Setup
-
-To run the xG prediction pipeline, you only need the following files and folders:
-
-- `predict_xg.py` — Main pipeline script
-- `register_model.py` — Model registration script
-- `config.yaml` — Pipeline configuration
-- `requirements.txt` — Python dependencies
-- `src/` — Core pipeline modules
-- `data/` — Your data files (see below)
-- `models/` — Model files and registry
-- `output/` — Results directory (created automatically)
-
-All other files (notebooks, old CSVs, images, PDFs, etc.) are now in the `historical/` directory for reference and development history.
-
 Data folder structure:
 ```
 data/
@@ -118,7 +102,14 @@ data/
 
 To run the pipeline:
 ```bash
-python predict_xg.py
+python predict_xg.py (default)
+or
+python predict_xg.py \
+  --shots_path data/shot_pack/.json \
+  --tracking_path data/shot_pack/.jsonl \
+  --mapping_path data/shot_pack/.json \
+  --model_path models/registry/.pkl \
+  --output_path outputs/.csv
 ```
 
 To register a model:
