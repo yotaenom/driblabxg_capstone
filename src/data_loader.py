@@ -4,12 +4,65 @@ import pandas as pd
 from typing import List, Dict, Any
 
 
+def extract_video_timestamps_from_shot_file(filepath: str) -> Dict[str, List[str]]:
+    file_key = os.path.basename(filepath).replace(".json", "")
+    with open(filepath, 'r') as f:
+        data = json.load(f)
+    timestamps = [str(event['videoTimestamp']) for event in data if 'videoTimestamp' in event]
+    return {file_key: timestamps}
+
+
+def extract_video_timestamps_from_tracking_file(filepath: str) -> Dict[str, List[str]]:
+    file_key = os.path.basename(filepath).replace("_tracking_data.jsonl", "")
+    timestamps = []
+    with open(filepath, 'r') as f:
+        for line in f:
+            line = line.strip()
+            if line:
+                try:
+                    data = json.loads(line)
+                    ts = data.get('videoTimestamp') or data.get('Videotimestamp')
+                    if ts is not None:
+                        timestamps.append(str(ts))
+                except json.JSONDecodeError:
+                    continue
+    return {file_key: timestamps}
+
+
+def load_all_tracking_timestamps(tracking_dir: str = "data/shot_pack/jsonls") -> Dict[str, List[str]]:
+    all_timestamps = {}
+    if not os.path.exists(tracking_dir):
+        raise FileNotFoundError(f"Tracking directory not found: {tracking_dir}")
+    
+    for filename in os.listdir(tracking_dir):
+        if filename.endswith('_tracking_data.jsonl'):
+            file_path = os.path.join(tracking_dir, filename)
+            timestamps_dict = extract_video_timestamps_from_tracking_file(file_path)
+            all_timestamps.update(timestamps_dict)
+    
+    return all_timestamps
+
+
+def load_all_shots_timestamps(shots_dir: str = "data/shot_pack/shots") -> Dict[str, List[str]]:
+    all_timestamps = {}
+    if not os.path.exists(shots_dir):
+        raise FileNotFoundError(f"Shots directory not found: {shots_dir}")
+    
+    for filename in os.listdir(shots_dir):
+        if filename.endswith('.json'):
+            file_path = os.path.join(shots_dir, filename)
+            timestamps_dict = extract_video_timestamps_from_shot_file(file_path)
+            all_timestamps.update(timestamps_dict)
+    
+    return all_timestamps
+
+
 def load_all_tracking_data(tracking_dir: str = "data/shot_pack/jsonls") -> List[Dict[str, Any]]:
     """
-    Loads all tracking JSON files from the given directory.
+    Loads all tracking JSONL files from the given directory.
     
     Args:
-        tracking_dir: Path to directory containing tracking JSON files
+        tracking_dir: Path to directory containing tracking JSONL files
         
     Returns:
         List of dictionaries containing tracking data from all files
@@ -20,16 +73,18 @@ def load_all_tracking_data(tracking_dir: str = "data/shot_pack/jsonls") -> List[
         raise FileNotFoundError(f"Tracking directory not found: {tracking_dir}")
     
     for filename in os.listdir(tracking_dir):
-        if filename.endswith('.json'):
+        if filename.endswith('.jsonl'):
             file_path = os.path.join(tracking_dir, filename)
             try:
                 with open(file_path, 'r') as f:
-                    data = json.load(f)
-                    # If data is a list, extend; if it's a dict, append
-                    if isinstance(data, list):
-                        tracking_data.extend(data)
-                    else:
-                        tracking_data.append(data)
+                    for line_num, line in enumerate(f, 1):
+                        line = line.strip()
+                        if line:
+                            try:
+                                data = json.loads(line)
+                                tracking_data.append(data)
+                            except json.JSONDecodeError as e:
+                                print(f"Error parsing line {line_num} in {filename}: {e}")
                 print(f"Loaded tracking data from: {filename}")
             except Exception as e:
                 print(f"Error loading {filename}: {e}")
@@ -64,7 +119,6 @@ def load_mappings(mappings_dir: str = "data/shot_pack/mappings") -> Dict[str, An
             try:
                 with open(file_path, 'r') as f:
                     data = json.load(f)
-                    # Use filename without extension as key
                     key = filename.replace('.json', '')
                     mappings[key] = data
                 print(f"Loaded mapping: {filename}")
@@ -97,7 +151,6 @@ def load_all_shots(shots_dir: str = "data/shot_pack/shots") -> List[Dict[str, An
             try:
                 with open(file_path, 'r') as f:
                     data = json.load(f)
-                    # If data is a list, extend; if it's a dict, append
                     if isinstance(data, list):
                         shots_data.extend(data)
                     else:
@@ -122,15 +175,12 @@ def load_all_data(base_dir: str = "data/shot_pack") -> Dict[str, Any]:
     """
     data = {}
     
-    # Load tracking data
     tracking_dir = os.path.join(base_dir, "jsonls")
     data['tracking'] = load_all_tracking_data(tracking_dir)
     
-    # Load mappings
     mappings_dir = os.path.join(base_dir, "mappings")
     data['mappings'] = load_mappings(mappings_dir)
     
-    # Load shots
     shots_dir = os.path.join(base_dir, "shots")
     data['shots'] = load_all_shots(shots_dir)
     
@@ -138,7 +188,6 @@ def load_all_data(base_dir: str = "data/shot_pack") -> Dict[str, Any]:
 
 
 if __name__ == "__main__":
-    # Test the data loader
     try:
         all_data = load_all_data()
         print("\nData loading summary:")
