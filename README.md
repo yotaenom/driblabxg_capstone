@@ -33,10 +33,7 @@ Unlike traditional xG models that only consider shot location or body part, this
 ## MLOps Features
 
 - Configuration management: Centralized `config.yaml` for all pipeline parameters
-- Logging system: Comprehensive logging for pipeline execution and debugging
 - Model registry: Version control and metadata tracking for models
-- CI/CD pipeline: Automated testing across multiple platforms
-- Cross-platform compatibility: Tested on macOS, Windows, and Linux
 
 ---
 
