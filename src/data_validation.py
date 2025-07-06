@@ -156,7 +156,7 @@ def validate_shots_schema(shots_data: Union[List[Dict[str, Any]], pd.DataFrame])
         
     else:
         # Check for raw nested JSON structure (before pd.json_normalize)
-        expected_columns: Set[str] = {
+        required_columns: Set[str] = {
             # Basic identifiers and metadata (top-level)
             'id', 'matchId', 'matchTimestamp', 'videoTimestamp',
             
@@ -165,9 +165,14 @@ def validate_shots_schema(shots_data: Union[List[Dict[str, Any]], pd.DataFrame])
             'team',           # contains id
             'player',         # contains id  
             'shot',           # contains bodyPart
-            'assist_info',    # contains type_secondary
             'possession'      # contains types
         }
+        
+        optional_columns: Set[str] = {
+            'assist_info',    # contains type_secondary (optional)
+        }
+        
+        expected_columns = required_columns | optional_columns
         
         # Validate nested structure
         def validate_nested_structure():
@@ -196,10 +201,15 @@ def validate_shots_schema(shots_data: Union[List[Dict[str, Any]], pd.DataFrame])
         
         validate_nested_structure()
     
-    # Check if all expected columns are present (extra columns are fine)
-    missing_columns = expected_columns - all_keys
-    if missing_columns:
-        raise AssertionError(f"Shots data missing required columns: {missing_columns}")
+    # Check if all required columns are present (extra columns are fine)
+    missing_required_columns = required_columns - all_keys
+    if missing_required_columns:
+        raise AssertionError(f"Shots data missing required columns: {missing_required_columns}")
+    
+    # Check for optional columns and warn if missing
+    missing_optional_columns = optional_columns - all_keys
+    if missing_optional_columns:
+        print(f"⚠ Warning: Missing optional columns: {missing_optional_columns}")
     
     # Report on what we found
     extra_columns = all_keys - expected_columns

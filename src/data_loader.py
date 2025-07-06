@@ -57,39 +57,50 @@ def load_all_shots_timestamps(shots_dir: str = "data/shot_pack/shots") -> Dict[s
     return all_timestamps
 
 
-def load_all_tracking_data(tracking_dir: str = "data/shot_pack/jsonls") -> List[Dict[str, Any]]:
+def load_all_tracking_data(tracking_dir: str = "data/shot_pack/jsonls", max_files: int = None) -> List[Dict[str, Any]]:
     """
-    Loads all tracking JSONL files from the given directory.
+    Loads tracking JSONL files from the given directory.
     
     Args:
         tracking_dir: Path to directory containing tracking JSONL files
+        max_files: Maximum number of files to load (None for all files)
         
     Returns:
-        List of dictionaries containing tracking data from all files
+        List of dictionaries containing tracking data from files
     """
     tracking_data = []
     
     if not os.path.exists(tracking_dir):
         raise FileNotFoundError(f"Tracking directory not found: {tracking_dir}")
     
-    for filename in os.listdir(tracking_dir):
-        if filename.endswith('.jsonl'):
-            file_path = os.path.join(tracking_dir, filename)
-            try:
-                with open(file_path, 'r') as f:
-                    for line_num, line in enumerate(f, 1):
-                        line = line.strip()
-                        if line:
-                            try:
-                                data = json.loads(line)
-                                tracking_data.append(data)
-                            except json.JSONDecodeError as e:
-                                print(f"Error parsing line {line_num} in {filename}: {e}")
-                print(f"Loaded tracking data from: {filename}")
-            except Exception as e:
-                print(f"Error loading {filename}: {e}")
+    jsonl_files = [f for f in os.listdir(tracking_dir) if f.endswith('.jsonl')]
+    jsonl_files.sort()
     
-    print(f"Total tracking records loaded: {len(tracking_data)}")
+    if max_files is None:
+        max_files = len(jsonl_files)
+    
+    processed_count = 0
+    for filename in jsonl_files:
+        if processed_count >= max_files:
+            break
+            
+        file_path = os.path.join(tracking_dir, filename)
+        try:
+            with open(file_path, 'r') as f:
+                for line_num, line in enumerate(f, 1):
+                    line = line.strip()
+                    if line:
+                        try:
+                            data = json.loads(line)
+                            tracking_data.append(data)
+                        except json.JSONDecodeError as e:
+                            print(f"Error parsing line {line_num} in {filename}: {e}")
+            print(f"Loaded tracking data from: {filename}")
+            processed_count += 1
+        except Exception as e:
+            print(f"Error loading {filename}: {e}")
+    
+    print(f"Total tracking records loaded: {len(tracking_data)} from {processed_count} files")
     return tracking_data
 
 
@@ -130,36 +141,47 @@ def load_mappings(mappings_dir: str = "data/shot_pack/mappings") -> Dict[str, An
     return mappings
 
 
-def load_all_shots(shots_dir: str = "data/shot_pack/shots") -> List[Dict[str, Any]]:
+def load_all_shots(shots_dir: str = "data/shot_pack/shots", max_files: int = None) -> List[Dict[str, Any]]:
     """
-    Loads all shot JSON files from the given directory.
+    Loads shot JSON files from the given directory.
     
     Args:
         shots_dir: Path to directory containing shot JSON files
+        max_files: Maximum number of files to load (None for all files)
         
     Returns:
-        List of dictionaries containing shot data from all files
+        List of dictionaries containing shot data from files
     """
     shots_data = []
     
     if not os.path.exists(shots_dir):
         raise FileNotFoundError(f"Shots directory not found: {shots_dir}")
     
-    for filename in os.listdir(shots_dir):
-        if filename.endswith('.json'):
-            file_path = os.path.join(shots_dir, filename)
-            try:
-                with open(file_path, 'r') as f:
-                    data = json.load(f)
-                    if isinstance(data, list):
-                        shots_data.extend(data)
-                    else:
-                        shots_data.append(data)
-                print(f"Loaded shots data from: {filename}")
-            except Exception as e:
-                print(f"Error loading {filename}: {e}")
+    json_files = [f for f in os.listdir(shots_dir) if f.endswith('.json')]
+    json_files.sort()
     
-    print(f"Total shot records loaded: {len(shots_data)}")
+    if max_files is None:
+        max_files = len(json_files)
+    
+    processed_count = 0
+    for filename in json_files:
+        if processed_count >= max_files:
+            break
+            
+        file_path = os.path.join(shots_dir, filename)
+        try:
+            with open(file_path, 'r') as f:
+                data = json.load(f)
+                if isinstance(data, list):
+                    shots_data.extend(data)
+                else:
+                    shots_data.append(data)
+            print(f"Loaded shots data from: {filename}")
+            processed_count += 1
+        except Exception as e:
+            print(f"Error loading {filename}: {e}")
+    
+    print(f"Total shot records loaded: {len(shots_data)} from {processed_count} files")
     return shots_data
 
 

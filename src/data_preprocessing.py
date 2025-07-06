@@ -655,7 +655,7 @@ def compute_gk_line_offset(row, event_to_tracking_map):
 
 
 def merge_raw_data(shots_dir: str, tracking_dir: str, mappings_dir: str, 
-                   prev_frames: int = 10, next_frames: int = 10) -> pd.DataFrame:
+                   prev_frames: int = 10, next_frames: int = 10, max_files: int = None) -> pd.DataFrame:
     """
     Merges shots data with tracking data using the frame context approach.
     """
@@ -678,7 +678,7 @@ def merge_raw_data(shots_dir: str, tracking_dir: str, mappings_dir: str,
     
     # Get shot-tracking matches with context
     all_tracking_data = get_all_shot_tracking_matches_with_context(
-        shots_dir, tracking_dir, prev_frames, next_frames
+        shots_dir, tracking_dir, prev_frames, next_frames, max_files
     )
     
     # Extract match metadata
@@ -966,14 +966,14 @@ def preprocess_merged_data(merged_df: pd.DataFrame) -> pd.DataFrame:
 
 
 def preprocess_all_data(shots_dir: str, tracking_dir: str, mappings_dir: str,
-                       prev_frames: int = 10, next_frames: int = 10) -> pd.DataFrame:
+                       prev_frames: int = 10, next_frames: int = 10, max_files: int = None) -> pd.DataFrame:
     """
     Complete preprocessing pipeline: merge and preprocess.
     """
     print("Starting data preprocessing pipeline...")
     
     # Step 1: Merge all raw data
-    merged_df = merge_raw_data(shots_dir, tracking_dir, mappings_dir, prev_frames, next_frames)
+    merged_df = merge_raw_data(shots_dir, tracking_dir, mappings_dir, prev_frames, next_frames, max_files)
     
     # Step 2: Preprocess the merged dataset
     final_df = preprocess_merged_data(merged_df)

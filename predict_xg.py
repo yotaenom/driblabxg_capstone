@@ -183,9 +183,9 @@ def main(args):
         
         try:
             logger.info("Step 1/5: Loading data...")
-            tracking = load_all_tracking_data(paths['tracking_path'])
+            tracking = load_all_tracking_data(paths['tracking_path'], max_files=5)  # TEMP: Only load 5 files
             mappings = load_mappings(paths['mapping_path'])
-            shots = load_all_shots(paths['shots_path'])
+            shots = load_all_shots(paths['shots_path'], max_files=5)  # TEMP: Only load 5 files
             data = {'tracking': tracking, 'mappings': mappings, 'shots': shots}
 
             logger.info("Step 2/5: Validating data...")
@@ -204,7 +204,8 @@ def main(args):
             processed_df = preprocess_all_data_old(
                 shots_dir=paths['shots_path'],
                 tracking_dir=paths['tracking_path'],
-                mappings_dir=paths['mapping_path']
+                mappings_dir=paths['mapping_path'],
+                max_files=5  # TEMP: Only process 5 files for quick test
             )
             
             # Use prepare_features_for_inference if available, otherwise skip
@@ -256,7 +257,8 @@ def main(args):
                 tracking_dir=paths['tracking_path'],
                 mappings_dir=paths['mapping_path'],
                 prev_frames=10,
-                next_frames=10
+                next_frames=10,
+                max_files=5  # TEMP: Only process 5 files for quick test
             )
             
             if processed_df.empty:

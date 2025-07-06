@@ -12,7 +12,7 @@ data:
   
 # Model Configuration
 model:
-  path: "models"
+  path: "models/registry/xgboost_original.pkl"
   supported_formats: [".pkl", ".joblib", ".pickle"]
   prediction_column: "predicted_xg"
   

@@ -58,15 +58,32 @@ def prepare_features_for_model(features_df: pd.DataFrame) -> np.ndarray:
     Returns:
         numpy array ready for model prediction
     """
-    # TODO: Add feature preparation logic specific to your model
-    # Examples:
-    # - Select only feature columns (exclude target)
-    # - Handle missing values
-    # - Apply same preprocessing as training (scaling, encoding)
-    # - Convert to numpy array
+    # Select only the features that the model expects
+    model_features = [
+        'R', 'shooting_angle', 'PDI_complete',
+        'gk_line_offset'
+    ]
     
-    # Placeholder: Convert to numpy array
-    features_array = features_df.values
+    available_features = [col for col in model_features if col in features_df.columns]
+    missing_features = [col for col in model_features if col not in features_df.columns]
+    
+    if missing_features:
+        print(f"⚠ Warning: Missing features for prediction: {missing_features}")
+    
+    if not available_features:
+        raise ValueError("No model features available in the data")
+    
+    # Select only the available model features
+    feature_df = features_df[available_features].copy()
+    
+    # Handle missing values
+    for col in feature_df.columns:
+        if feature_df[col].isna().any():
+            median_val = feature_df[col].median()
+            feature_df[col] = feature_df[col].fillna(median_val)
+    
+    # Convert to numpy array
+    features_array = feature_df.values
     
     print(f"✓ Features prepared for model: {features_array.shape}")
     return features_array
