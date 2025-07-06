@@ -42,10 +42,6 @@ Unlike traditional xG models that only consider shot location or body part, this
 
 ## Platform Compatibility
 
----
-
-## Platform Compatibility
-
 To run this project seamlessly, it should be run on **macOS**. While it is still not tested on **Windows** or **Linux**, the code and dependencies are all cross-platform, so it should run on those systems as well (we’d recommend Ubuntu 24.04 LTS for Linux users). The instructions below provide OS specific commands where necessary. 
 
 ---
