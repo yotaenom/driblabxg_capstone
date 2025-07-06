@@ -1,3 +1,5 @@
+![Enhanced xG Prediction Pipeline](historical/github_header.png)
+
 # Enhanced xG Prediction Pipeline — Driblab Capstone
 
 This repository contains a modular and testable pipeline for predicting enhanced expected goals (xG) using football event and tracking data.
