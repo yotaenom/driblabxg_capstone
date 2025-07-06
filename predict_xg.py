@@ -216,10 +216,12 @@ def main(args):
                 print("  - Using processed data directly (no prepare_features_for_inference)")
 
             logger.info("Step 4/5: Running inference...")
+            # Pass the shots_dir parameter to extract missing features
             results = run_inference_pipeline(
                 features_df,
                 model_path=paths['model_path'],
-                output_dir=paths['output_path']
+                output_dir=paths['output_path'],
+                shots_dir=paths['shots_path']  # Add this parameter
             )
 
             logger.info("Step 5/5: Generating report...")

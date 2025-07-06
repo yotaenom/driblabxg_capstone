@@ -3,4 +3,6 @@ numpy
 joblib
 argparse
 PyYAML
+xgboost
+scikit-learn
 # tensorflow  # Uncomment if you plan to use Keras models 
