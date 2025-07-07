@@ -80,15 +80,14 @@ pip install --upgrade pip
 pip install -r requirements.txt
 ```
 
-### 4. Configure the Pipeline
+### 4. Configure the Pipeline (Optional)
+Customize the Pipeline: The default configuration works. Any customization is optional.
 
 Edit `config.yaml` to customize:
 - Data paths
 - Model settings
 - Output preferences
 - Validation requirements
-
-(Optional) Customize the Pipeline: The default configuration works. Any customization is optional.
 
 ### 5. Prepare Your Data
 - Place your shot, tracking, and mapping JSON files in the appropriate folders under `data/shot_pack/` as shown below.
