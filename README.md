@@ -124,6 +124,7 @@ python predict_xg.py \
 ## Folder Structure
 ```
 driblabxg_capstone/
+├── Model_Management.md      # Model management documentation
 ├── data/
 │   └── shot_pack/
 │       ├── shots/      # Shot data (JSON format)
@@ -179,3 +180,4 @@ If you are missing files, check the `historical/` directory for old notebooks, C
 For advanced model management (registering new models, versioning, and metadata), see [Model_Management.md](./Model_Management.md).
 
 ---
+
