@@ -102,23 +102,24 @@ data/
     └── mappings/   # Mapping files (JSON format)
 ```
 
-To run the pipeline:
+---
+
+## Execute Predictions
+
+To run the pipeline with the default configuration:
 ```bash
-python predict_xg.py (default)
-or
+python predict_xg.py
+```
+
+To run the pipeline with custom paths:
+```bash
 python predict_xg.py \
-  --shots_path data/shot_pack/.json \
-  --tracking_path data/shot_pack/.jsonl \
-  --mapping_path data/shot_pack/.json \
-  --model_path models/registry/.pkl \
-  --output_path outputs/.csv
+  --shots_path data/shot_pack/shots/your_shots.json \
+  --tracking_path data/shot_pack/jsonls/your_tracking.jsonl \
+  --mapping_path data/shot_pack/mappings/your_mapping.json \
+  --model_path models/registry/your_model.pkl \
+  --output_path output/your_predictions.csv
 ```
-
-To register a model:
-```bash
-python register_model.py
-```
-
 ---
 
 ## Folder Structure
