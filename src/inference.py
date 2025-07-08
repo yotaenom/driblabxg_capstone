@@ -272,16 +272,17 @@ def prepare_features_for_model(features_df: pd.DataFrame, shots_dir: str = None)
     return features_array
 
 
-def run_inference(model: Any, features: np.ndarray) -> np.ndarray:
+def run_inference(model: Any, features: np.ndarray, model_path: str = "") -> np.ndarray:
     """
     Runs model inference on the prepared features.
-    
+
     Args:
         model: Loaded model object
         features: Prepared features as numpy array
-        
+        model_path: Path to the model (used to apply threshold if original model)
+
     Returns:
-        Model predictions
+        Model predictions (probabilities or binary)
     """
     try:
         # Check if model has predict_proba method (for classification)
@@ -292,12 +293,17 @@ def run_inference(model: Any, features: np.ndarray) -> np.ndarray:
                 predictions = predictions[:, 1]
         else:
             predictions = model.predict(features)
-        
+
+        # Apply threshold if it's the original (uncalibrated) model
+        if "xgboost_original.pkl" in model_path:
+            predictions = (predictions >= 0.32).astype(int)
+
         print(f"✓ Inference completed: {len(predictions)} predictions")
         return predictions
-        
+
     except Exception as e:
         raise RuntimeError(f"Model inference failed: {e}")
+
 
 
 def create_results_dataframe(features_df: pd.DataFrame, 
@@ -385,7 +391,7 @@ def run_inference_pipeline(features_df: pd.DataFrame,
     features = prepare_features_for_model(features_df, shots_dir)
     
     # Step 3: Run inference
-    predictions = run_inference(model, features)
+    predictions = run_inference(model, features, model_path=model_path)
     
     # Step 4: Create results DataFrame
     results_df = create_results_dataframe(features_df, predictions, prediction_column)
