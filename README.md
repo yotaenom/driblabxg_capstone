@@ -110,6 +110,10 @@ To run the pipeline with the default configuration:
 python predict_xg.py
 ```
 
+### Choosing the Model Type
+- **Binary Classification (0/1 outcome):** Use `models/registry/xgboost_original.pkl` as your model. This model outputs a binary prediction (goal or no goal).
+- **Probability Output (xG probability):** Use `models/registry/xgboost_calibrated.pkl` as your model. This model outputs the probability of a goal (recommended for most xG use cases).
+
 To run the pipeline with custom paths:
 ```bash
 python predict_xg.py \
@@ -119,6 +123,7 @@ python predict_xg.py \
   --model_path models/registry/your_model.pkl \
   --output_path output/your_predictions.csv
 ```
+(Replace `your_model.pkl` with `xgboost_original.pkl` or `xgboost_calibrated.pkl`  for desired output (binary classification or probability).)
 ---
 
 ## Folder Structure
@@ -131,7 +136,10 @@ driblabxg_capstone/
 │       ├── jsonls/     # Tracking data (JSON format)
 │       └── mappings/   # Mapping files (JSON format)
 ├── models/             # Trained model files (.pkl, .joblib, etc.)
-│   └── registry/       # Model registry metadata
+│   └── registry/       # Model registry metadata and model files
+│       ├── xgboost_original.pkl      # Binary classification model
+│       ├── xgboost_calibrated.pkl    # Probability output model
+│       └── metadata.json             # Model metadata
 ├── output/             # Prediction results (CSV)
 ├── src/                # Core pipeline modules
 │   ├── data_loader.py
