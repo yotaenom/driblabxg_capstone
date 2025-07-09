@@ -123,7 +123,7 @@ python predict_xg.py \
   --model_path models/registry/your_model.pkl \
   --output_path output/your_predictions.csv
 ```
-Replace `your_model.pkl` with `xgboost_original.pkl` or `xgboost_calibrated.pkl`  for desired output (binary classification or probability).
+Replace **your_model.pkl** with **xgboost_original.pkl** or **xgboost_calibrated.pkl** for desired output (binary classification or probability).
 ---
 
 ## Folder Structure
